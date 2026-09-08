@@ -55,6 +55,21 @@
   header .title{font-size:22px;font-weight:700;letter-spacing:.5px;}
   header .date{font-size:13px;color:var(--ink-soft);margin-top:4px;}
   header .summary{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  .sort-toggle{
+    margin-top:2px;
+    font-size:12px;
+    font-weight:600;
+    color:var(--ink-soft);
+    background:var(--card);
+    border:1.5px solid var(--line);
+    border-radius:20px;
+    padding:6px 12px;
+    display:flex;
+    align-items:center;
+    gap:5px;
+    white-space:nowrap;
+  }
+  .sort-toggle:active{transform:scale(0.97);}
   main{
     flex:1;
     padding:4px 16px 110px;
@@ -308,6 +323,7 @@
       <div class="date" id="dateLine"></div>
       <div class="summary" id="summaryLine"></div>
     </div>
+    <button class="sort-toggle" id="sortToggle"></button>
   </header>
 
   <main id="main"></main>
@@ -383,7 +399,8 @@ const DEFAULT_CATEGORIES = ['習作','講義','考卷','背誦','報告','練習
 let state = {
   assignments: [],
   customSubjects: [],
-  customCategories: []
+  customCategories: [],
+  sortMode: 'group' // 'group' 分區塊顯示 | 'flat' 純依截止日期排序
 };
 let editingId = null;
 let selectedSubject = null;
@@ -420,6 +437,7 @@ function loadState(){
       state.assignments = parsed.assignments || [];
       state.customSubjects = parsed.customSubjects || [];
       state.customCategories = parsed.customCategories || [];
+      state.sortMode = parsed.sortMode === 'flat' ? 'flat' : 'group';
     }
   }catch(e){
     console.log('no existing data yet');
@@ -454,6 +472,7 @@ function renderHeader(){
   if(overdue>0) parts.push('已逾期 '+overdue+' 項');
   if(dueToday>0) parts.push('今天 '+dueToday+' 項');
   document.getElementById('summaryLine').textContent = parts.join('・');
+  renderSortToggle();
 }
 
 function cardHtml(a){
@@ -503,6 +522,14 @@ function render(){
     main.innerHTML = `<div class="empty-state"><div class="big">目前沒有作業</div><div class="small">點下方的 + 開始新增第一筆作業紀錄</div></div>`;
     return;
   }
+
+  if(state.sortMode === 'flat'){
+    const sorted = active.slice().sort((a,b)=>a.dueDate.localeCompare(b.dueDate));
+    main.innerHTML = sorted.map(cardHtml).join('');
+    bindCardEvents();
+    return;
+  }
+
   const groups = {overdue:[],today:[],tomorrow:[],week:[],later:[]};
   active.forEach(a=>{
     const diff = dayDiff(a.dueDate, today);
@@ -523,6 +550,22 @@ function render(){
   main.innerHTML = html;
   bindCardEvents();
 }
+
+function renderSortToggle(){
+  const btn = document.getElementById('sortToggle');
+  btn.style.display = view === 'done' ? 'none' : 'flex';
+  if(state.sortMode === 'flat'){
+    btn.innerHTML = '📅 依日期排序';
+  }else{
+    btn.innerHTML = '☰ 分區顯示';
+  }
+}
+document.getElementById('sortToggle').addEventListener('click', ()=>{
+  state.sortMode = state.sortMode === 'flat' ? 'group' : 'flat';
+  saveState();
+  renderSortToggle();
+  render();
+});
 
 function bindCardEvents(){
   document.querySelectorAll('[data-check]').forEach(btn=>{
