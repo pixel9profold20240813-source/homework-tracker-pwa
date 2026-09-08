@@ -1,0 +1,714 @@
+<!DOCTYPE html>
+<html lang="zh-Hant">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0, maximum-scale=1.0, user-scalable=no">
+<title>作業紀錄</title>
+<link rel="manifest" href="manifest.json">
+<meta name="theme-color" content="#242A2E">
+<meta name="apple-mobile-web-app-capable" content="yes">
+<meta name="apple-mobile-web-app-status-bar-style" content="black-translucent">
+<meta name="apple-mobile-web-app-title" content="作業紀錄">
+<link rel="apple-touch-icon" href="icon-192.png">
+<style>
+  :root{
+    --paper:#EAE8E0;
+    --card:#FBFAF6;
+    --ink:#242A2E;
+    --ink-soft:#5B615F;
+    --ink-faint:#8B8F8A;
+    --line:#DBD8CC;
+    --nav:#242A2E;
+    --nav-line:#3A4045;
+    --fab:#D6A23C;
+    --fab-ink:#2A2013;
+    --danger:#B5453C;
+    --danger-bg:#F4E4E1;
+    --done:#4F8F6B;
+    --done-bg:#E6EFE7;
+    --today-bg:#F1E8D3;
+    --radius:14px;
+  }
+  *{box-sizing:border-box;}
+  html,body{margin:0;padding:0;}
+  body{
+    background:var(--paper);
+    color:var(--ink);
+    font-family:-apple-system,BlinkMacSystemFont,"PingFang TC","Noto Sans TC","Microsoft JhengHei",sans-serif;
+    -webkit-font-smoothing:antialiased;
+  }
+  #app{
+    max-width:460px;
+    margin:0 auto;
+    min-height:100vh;
+    background:var(--paper);
+    display:flex;
+    flex-direction:column;
+    position:relative;
+  }
+  header{
+    padding:22px 20px 14px;
+    display:flex;
+    justify-content:space-between;
+    align-items:flex-start;
+  }
+  header .title{font-size:22px;font-weight:700;letter-spacing:.5px;}
+  header .date{font-size:13px;color:var(--ink-soft);margin-top:4px;}
+  header .summary{font-size:13px;color:var(--ink-soft);margin-top:2px;}
+  main{
+    flex:1;
+    padding:4px 16px 110px;
+    overflow-y:auto;
+  }
+  .section-label{
+    font-size:13px;
+    color:var(--ink-soft);
+    font-weight:700;
+    margin:18px 4px 8px;
+    display:flex;
+    align-items:center;
+    gap:6px;
+  }
+  .section-label.overdue{color:var(--danger);}
+  .count-pill{
+    font-size:11px;
+    background:var(--line);
+    color:var(--ink-soft);
+    border-radius:20px;
+    padding:1px 7px;
+    font-weight:600;
+  }
+  .card{
+    background:var(--card);
+    border-radius:var(--radius);
+    padding:12px 14px;
+    margin-bottom:8px;
+    border-left:5px solid var(--c, #888);
+    display:flex;
+    align-items:flex-start;
+    gap:10px;
+    cursor:pointer;
+    transition:transform .1s ease;
+  }
+  .card:active{transform:scale(0.98);}
+  .card.overdue{background:var(--danger-bg);}
+  .card.today{background:var(--today-bg);}
+  .card.done{opacity:.55;}
+  .card-body{flex:1;min-width:0;}
+  .card-top{display:flex;align-items:center;gap:8px;margin-bottom:2px;flex-wrap:wrap;}
+  .subject-tag{font-size:12px;font-weight:700;color:var(--c,#555);}
+  .category-badge{
+    font-size:11px;
+    color:var(--ink-soft);
+    border:1px solid var(--line);
+    border-radius:20px;
+    padding:1px 8px;
+  }
+  .card-range{
+    font-size:14px;
+    color:var(--ink);
+    line-height:1.4;
+    word-break:break-word;
+  }
+  .card.done .card-range{text-decoration:line-through;color:var(--ink-faint);}
+  .card-due{font-size:12px;color:var(--ink-soft);margin-top:4px;}
+  .card-due.overdue-text{color:var(--danger);font-weight:600;}
+  .check-btn{
+    width:26px;height:26px;
+    border-radius:50%;
+    border:1.5px solid var(--line);
+    background:var(--card);
+    flex-shrink:0;
+    display:flex;align-items:center;justify-content:center;
+    color:transparent;
+    font-size:15px;
+  }
+  .check-btn.checked{
+    background:var(--done);
+    border-color:var(--done);
+    color:#fff;
+  }
+  .empty-state{
+    text-align:center;
+    padding:70px 20px 20px;
+    color:var(--ink-soft);
+  }
+  .empty-state .big{font-size:16px;font-weight:700;color:var(--ink);margin-bottom:6px;}
+  .empty-state .small{font-size:13px;line-height:1.6;}
+
+  nav{
+    position:fixed;
+    bottom:0;left:0;right:0;
+    max-width:460px;
+    margin:0 auto;
+    height:66px;
+    background:var(--nav);
+    border-top:1px solid var(--nav-line);
+    display:flex;
+    align-items:center;
+    justify-content:space-around;
+    z-index:20;
+  }
+  .nav-btn{
+    background:none;border:none;
+    color:#9CA1A0;
+    font-size:11px;
+    display:flex;flex-direction:column;align-items:center;gap:3px;
+    width:74px;
+    padding:6px 0;
+  }
+  .nav-btn.active{color:#F2EFE6;}
+  .nav-icon{font-size:20px;line-height:1;}
+  .fab-wrap{
+    width:74px;
+    display:flex;
+    justify-content:center;
+  }
+  .fab{
+    width:52px;height:52px;
+    border-radius:50%;
+    background:var(--fab);
+    color:var(--fab-ink);
+    border:4px solid var(--paper);
+    font-size:26px;
+    font-weight:400;
+    display:flex;align-items:center;justify-content:center;
+    margin-top:-30px;
+    box-shadow:0 2px 6px rgba(0,0,0,.25);
+  }
+  .fab:active{transform:scale(0.95);}
+
+  .overlay{
+    position:fixed;inset:0;
+    background:rgba(20,20,18,.45);
+    display:none;
+    z-index:30;
+    max-width:460px;
+    margin:0 auto;
+  }
+  .overlay.open{display:block;}
+  .sheet{
+    position:absolute;
+    left:0;right:0;bottom:0;
+    background:var(--paper);
+    border-radius:20px 20px 0 0;
+    max-height:88vh;
+    overflow-y:auto;
+    transform:translateY(100%);
+    transition:transform .25s ease;
+    padding:10px 20px 28px;
+  }
+  .overlay.open .sheet{transform:translateY(0);}
+  .sheet-handle{
+    width:38px;height:4px;
+    background:var(--line);
+    border-radius:4px;
+    margin:6px auto 12px;
+  }
+  .sheet-head{
+    display:flex;justify-content:space-between;align-items:center;
+    margin-bottom:16px;
+  }
+  .sheet-head h2{font-size:17px;margin:0;font-weight:700;}
+  .sheet-close{
+    background:none;border:none;font-size:20px;color:var(--ink-soft);
+    width:30px;height:30px;
+  }
+  .field-label{
+    font-size:13px;font-weight:700;color:var(--ink-soft);
+    margin:16px 0 8px;
+  }
+  .field-label .opt{font-weight:400;color:var(--ink-faint);}
+  .chip-grid{
+    display:flex;flex-wrap:wrap;gap:8px;
+  }
+  .chip{
+    font-size:13px;
+    padding:7px 13px;
+    border-radius:20px;
+    border:1.5px solid var(--line);
+    background:var(--card);
+    color:var(--ink-soft);
+    font-weight:600;
+  }
+  .chip.selected{
+    color:#fff;
+    border-color:var(--c,#555);
+    background:var(--c,#555);
+  }
+  .chip.add-chip{
+    color:var(--ink-soft);
+    border-style:dashed;
+  }
+  .inline-add{
+    display:flex;gap:6px;margin-top:8px;
+  }
+  .inline-add input{
+    flex:1;
+    font-size:14px;
+    padding:8px 10px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:var(--card);
+  }
+  .inline-add button{
+    font-size:13px;font-weight:700;
+    padding:0 14px;
+    border-radius:10px;
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+  }
+  input[type="date"], textarea, input[type="text"].note{
+    width:100%;
+    font-size:15px;
+    padding:11px 12px;
+    border-radius:10px;
+    border:1.5px solid var(--line);
+    background:var(--card);
+    color:var(--ink);
+    font-family:inherit;
+  }
+  textarea{resize:vertical;min-height:70px;line-height:1.5;}
+  .save-btn{
+    width:100%;
+    margin-top:24px;
+    padding:14px;
+    border-radius:12px;
+    border:none;
+    background:var(--ink);
+    color:var(--paper);
+    font-size:15px;
+    font-weight:700;
+  }
+  .save-btn:disabled{opacity:.4;}
+  .delete-btn{
+    width:100%;
+    margin-top:10px;
+    padding:12px;
+    border-radius:12px;
+    border:1.5px solid var(--danger);
+    background:none;
+    color:var(--danger);
+    font-size:14px;
+    font-weight:700;
+  }
+  .subgroup-label{
+    font-size:11px;color:var(--ink-faint);
+    margin:10px 0 4px;
+    font-weight:700;
+  }
+</style>
+</head>
+<body>
+<div id="app">
+  <header>
+    <div>
+      <div class="title">作業紀錄</div>
+      <div class="date" id="dateLine"></div>
+      <div class="summary" id="summaryLine"></div>
+    </div>
+  </header>
+
+  <main id="main"></main>
+
+  <nav>
+    <button class="nav-btn active" id="tabAll">
+      <span class="nav-icon">☰</span>全部
+    </button>
+    <div class="fab-wrap">
+      <button class="fab" id="fabAdd">+</button>
+    </div>
+    <button class="nav-btn" id="tabDone">
+      <span class="nav-icon">✓</span>已完成
+    </button>
+  </nav>
+</div>
+
+<div class="overlay" id="overlay">
+  <div class="sheet" id="sheet">
+    <div class="sheet-handle"></div>
+    <div class="sheet-head">
+      <h2 id="sheetTitle">新增作業</h2>
+      <button class="sheet-close" id="sheetClose">✕</button>
+    </div>
+
+    <div class="field-label">科目</div>
+    <div class="chip-grid" id="subjectGrid"></div>
+    <div class="inline-add" id="subjectAddRow" style="display:none;">
+      <input type="text" id="subjectAddInput" placeholder="輸入新科目名稱">
+      <button id="subjectAddConfirm">新增</button>
+    </div>
+
+    <div class="field-label">作業類別</div>
+    <div class="chip-grid" id="categoryGrid"></div>
+    <div class="inline-add" id="categoryAddRow" style="display:none;">
+      <input type="text" id="categoryAddInput" placeholder="輸入新類別名稱">
+      <button id="categoryAddConfirm">新增</button>
+    </div>
+
+    <div class="field-label">截止日期</div>
+    <input type="date" id="dueDateInput">
+
+    <div class="field-label">範圍</div>
+    <textarea id="rangeInput" placeholder="例如：習作 p.12-15、第三課生字語詞"></textarea>
+
+    <div class="field-label">備註 <span class="opt">(選填)</span></div>
+    <input type="text" class="note" id="noteInput" placeholder="其他提醒事項">
+
+    <button class="save-btn" id="saveBtn">儲存</button>
+    <button class="delete-btn" id="deleteBtn" style="display:none;">刪除這筆作業</button>
+  </div>
+</div>
+
+<script>
+const DEFAULT_SUBJECTS = [
+  {name:'國文', color:'#B5544B'},
+  {name:'英文', color:'#3E6E92'},
+  {name:'數學', color:'#6B5B95'},
+  {name:'歷史', color:'#C08A3E'},
+  {name:'地理', color:'#A97A4A'},
+  {name:'公民', color:'#B99A3E'},
+  {name:'生物', color:'#4F8F6B'},
+  {name:'理化', color:'#3F8F7A'},
+  {name:'地科', color:'#5C9C7A'},
+  {name:'音樂', color:'#B5657C'},
+  {name:'美術', color:'#8C6BAE'},
+  {name:'體育', color:'#4A8C86'},
+  {name:'其他', color:'#6B7280'}
+];
+const CUSTOM_COLORS = ['#4A6FA5','#9C6B44','#7A5C6E','#5A8A5A','#A85A5A','#5A7A9C','#8A6B3C'];
+const DEFAULT_CATEGORIES = ['習作','講義','考卷','背誦','報告','練習題','專題','其他'];
+
+let state = {
+  assignments: [],
+  customSubjects: [],
+  customCategories: []
+};
+let editingId = null;
+let selectedSubject = null;
+let selectedCategory = null;
+let view = 'all';
+
+function todayStr(){
+  const d = new Date();
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function addDays(str, n){
+  const d = new Date(str+'T00:00:00');
+  d.setDate(d.getDate()+n);
+  return d.getFullYear()+'-'+String(d.getMonth()+1).padStart(2,'0')+'-'+String(d.getDate()).padStart(2,'0');
+}
+function dayDiff(a,b){
+  return Math.round((new Date(a+'T00:00:00') - new Date(b+'T00:00:00'))/86400000);
+}
+function formatMD(str){
+  const d = new Date(str+'T00:00:00');
+  const wd = ['日','一','二','三','四','五','六'][d.getDay()];
+  return (d.getMonth()+1)+'月'+d.getDate()+'日 週'+wd;
+}
+function uid(){
+  return Date.now().toString(36)+Math.random().toString(36).slice(2,7);
+}
+
+async function loadState(){
+  try{
+    const res = await window.storage.get('homework-data', false);
+    if(res && res.value){
+      const parsed = JSON.parse(res.value);
+      state.assignments = parsed.assignments || [];
+      state.customSubjects = parsed.customSubjects || [];
+      state.customCategories = parsed.customCategories || [];
+    }
+  }catch(e){
+    console.log('no existing data yet');
+  }
+  render();
+}
+async function saveState(){
+  try{
+    await window.storage.set('homework-data', JSON.stringify(state), false);
+  }catch(e){
+    console.error('storage save failed', e);
+  }
+}
+
+function allSubjects(){
+  return DEFAULT_SUBJECTS.concat(state.customSubjects);
+}
+function allCategories(){
+  return DEFAULT_CATEGORIES.concat(state.customCategories);
+}
+function subjectColor(name){
+  const found = allSubjects().find(s=>s.name===name);
+  return found ? found.color : '#6B7280';
+}
+
+function renderHeader(){
+  document.getElementById('dateLine').textContent = formatMD(todayStr());
+  const today = todayStr();
+  const overdue = state.assignments.filter(a=>!a.done && a.dueDate < today).length;
+  const dueToday = state.assignments.filter(a=>!a.done && a.dueDate === today).length;
+  let parts = [];
+  if(overdue>0) parts.push('已逾期 '+overdue+' 項');
+  if(dueToday>0) parts.push('今天 '+dueToday+' 項');
+  document.getElementById('summaryLine').textContent = parts.join('・');
+}
+
+function cardHtml(a){
+  const today = todayStr();
+  const isOverdue = !a.done && a.dueDate < today;
+  const isToday = !a.done && a.dueDate === today;
+  let cls = 'card';
+  if(a.done) cls += ' done';
+  else if(isOverdue) cls += ' overdue';
+  else if(isToday) cls += ' today';
+  const color = subjectColor(a.subject);
+  return `<div class="${cls}" style="--c:${color}" data-id="${a.id}">
+    <button class="check-btn ${a.done?'checked':''}" data-check="${a.id}">${a.done?'✓':''}</button>
+    <div class="card-body">
+      <div class="card-top">
+        <span class="subject-tag" style="--c:${color}">${escapeHtml(a.subject)}</span>
+        <span class="category-badge">${escapeHtml(a.category)}</span>
+      </div>
+      <div class="card-range">${escapeHtml(a.range || '(未填寫範圍)')}</div>
+      <div class="card-due ${isOverdue?'overdue-text':''}">${formatMD(a.dueDate)} 截止${a.note?'・'+escapeHtml(a.note):''}</div>
+    </div>
+  </div>`;
+}
+function escapeHtml(s){
+  return String(s).replace(/[&<>"']/g, c=>({'&':'&amp;','<':'&lt;','>':'&gt;','"':'&quot;',"'":'&#39;'}[c]));
+}
+
+function render(){
+  renderHeader();
+  const main = document.getElementById('main');
+  const today = todayStr();
+  const tomorrow = addDays(today,1);
+
+  if(view === 'done'){
+    const done = state.assignments.filter(a=>a.done).sort((a,b)=>b.dueDate.localeCompare(a.dueDate));
+    if(done.length===0){
+      main.innerHTML = `<div class="empty-state"><div class="big">還沒有已完成的作業</div><div class="small">完成的作業會顯示在這裡</div></div>`;
+    }else{
+      main.innerHTML = `<div class="section-label">已完成<span class="count-pill">${done.length}</span></div>` + done.map(cardHtml).join('');
+    }
+    bindCardEvents();
+    return;
+  }
+
+  const active = state.assignments.filter(a=>!a.done);
+  if(active.length===0){
+    main.innerHTML = `<div class="empty-state"><div class="big">目前沒有作業</div><div class="small">點下方的 + 開始新增第一筆作業紀錄</div></div>`;
+    return;
+  }
+  const groups = {overdue:[],today:[],tomorrow:[],week:[],later:[]};
+  active.forEach(a=>{
+    const diff = dayDiff(a.dueDate, today);
+    if(diff < 0) groups.overdue.push(a);
+    else if(diff === 0) groups.today.push(a);
+    else if(diff === 1) groups.tomorrow.push(a);
+    else if(diff <= 7) groups.week.push(a);
+    else groups.later.push(a);
+  });
+  Object.values(groups).forEach(g=>g.sort((a,b)=>a.dueDate.localeCompare(b.dueDate)));
+
+  let html = '';
+  if(groups.overdue.length) html += `<div class="section-label overdue">已逾期<span class="count-pill">${groups.overdue.length}</span></div>` + groups.overdue.map(cardHtml).join('');
+  if(groups.today.length) html += `<div class="section-label">今天</div>` + groups.today.map(cardHtml).join('');
+  if(groups.tomorrow.length) html += `<div class="section-label">明天</div>` + groups.tomorrow.map(cardHtml).join('');
+  if(groups.week.length) html += `<div class="section-label">本週稍後</div>` + groups.week.map(cardHtml).join('');
+  if(groups.later.length) html += `<div class="section-label">之後</div>` + groups.later.map(cardHtml).join('');
+  main.innerHTML = html;
+  bindCardEvents();
+}
+
+function bindCardEvents(){
+  document.querySelectorAll('[data-check]').forEach(btn=>{
+    btn.addEventListener('click', e=>{
+      e.stopPropagation();
+      const id = btn.getAttribute('data-check');
+      const a = state.assignments.find(x=>x.id===id);
+      a.done = !a.done;
+      saveState();
+      render();
+    });
+  });
+  document.querySelectorAll('.card').forEach(card=>{
+    card.addEventListener('click', ()=>{
+      openSheet(card.getAttribute('data-id'));
+    });
+  });
+}
+
+function renderChipGrid(containerId, items, selected, colorMap){
+  const container = document.getElementById(containerId);
+  container.innerHTML = items.map(name=>{
+    const c = colorMap ? colorMap(name) : null;
+    const sel = name === selected;
+    return `<button class="chip ${sel?'selected':''}" style="${c?'--c:'+c:''}" data-val="${escapeHtml(name)}">${escapeHtml(name)}</button>`;
+  }).join('') + `<button class="chip add-chip" id="${containerId}AddBtn">+ 新增</button>`;
+}
+
+function openSubjectGrid(){
+  renderChipGrid('subjectGrid', allSubjects().map(s=>s.name), selectedSubject, subjectColor);
+  document.querySelectorAll('#subjectGrid .chip:not(.add-chip)').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      selectedSubject = chip.getAttribute('data-val');
+      openSubjectGrid();
+      updateSaveState();
+    });
+  });
+  document.getElementById('subjectGridAddBtn').addEventListener('click', ()=>{
+    document.getElementById('subjectAddRow').style.display = 'flex';
+    document.getElementById('subjectAddInput').focus();
+  });
+}
+function openCategoryGrid(){
+  renderChipGrid('categoryGrid', allCategories(), selectedCategory, null);
+  document.querySelectorAll('#categoryGrid .chip:not(.add-chip)').forEach(chip=>{
+    chip.addEventListener('click', ()=>{
+      selectedCategory = chip.getAttribute('data-val');
+      openCategoryGrid();
+      updateSaveState();
+    });
+  });
+  document.getElementById('categoryGridAddBtn').addEventListener('click', ()=>{
+    document.getElementById('categoryAddRow').style.display = 'flex';
+    document.getElementById('categoryAddInput').focus();
+  });
+}
+
+document.getElementById('subjectAddConfirm').addEventListener('click', ()=>{
+  const val = document.getElementById('subjectAddInput').value.trim();
+  if(!val) return;
+  if(!allSubjects().find(s=>s.name===val)){
+    const color = CUSTOM_COLORS[state.customSubjects.length % CUSTOM_COLORS.length];
+    state.customSubjects.push({name:val, color});
+    saveState();
+  }
+  selectedSubject = val;
+  document.getElementById('subjectAddInput').value='';
+  document.getElementById('subjectAddRow').style.display='none';
+  openSubjectGrid();
+  updateSaveState();
+});
+document.getElementById('categoryAddConfirm').addEventListener('click', ()=>{
+  const val = document.getElementById('categoryAddInput').value.trim();
+  if(!val) return;
+  if(!allCategories().includes(val)){
+    state.customCategories.push(val);
+    saveState();
+  }
+  selectedCategory = val;
+  document.getElementById('categoryAddInput').value='';
+  document.getElementById('categoryAddRow').style.display='none';
+  openCategoryGrid();
+  updateSaveState();
+});
+
+function updateSaveState(){
+  const dueOk = document.getElementById('dueDateInput').value;
+  document.getElementById('saveBtn').disabled = !(selectedSubject && selectedCategory && dueOk);
+}
+document.getElementById('dueDateInput').addEventListener('change', updateSaveState);
+
+function openSheet(id){
+  editingId = id || null;
+  const overlay = document.getElementById('overlay');
+  document.getElementById('subjectAddRow').style.display='none';
+  document.getElementById('categoryAddRow').style.display='none';
+
+  if(id){
+    const a = state.assignments.find(x=>x.id===id);
+    document.getElementById('sheetTitle').textContent = '編輯作業';
+    selectedSubject = a.subject;
+    selectedCategory = a.category;
+    document.getElementById('dueDateInput').value = a.dueDate;
+    document.getElementById('rangeInput').value = a.range || '';
+    document.getElementById('noteInput').value = a.note || '';
+    document.getElementById('deleteBtn').style.display = 'block';
+  }else{
+    document.getElementById('sheetTitle').textContent = '新增作業';
+    selectedSubject = null;
+    selectedCategory = null;
+    document.getElementById('dueDateInput').value = todayStr();
+    document.getElementById('rangeInput').value = '';
+    document.getElementById('noteInput').value = '';
+    document.getElementById('deleteBtn').style.display = 'none';
+  }
+  openSubjectGrid();
+  openCategoryGrid();
+  updateSaveState();
+  overlay.classList.add('open');
+}
+function closeSheet(){
+  document.getElementById('overlay').classList.remove('open');
+}
+
+document.getElementById('fabAdd').addEventListener('click', ()=>openSheet(null));
+document.getElementById('sheetClose').addEventListener('click', closeSheet);
+document.getElementById('overlay').addEventListener('click', e=>{
+  if(e.target.id === 'overlay') closeSheet();
+});
+
+document.getElementById('saveBtn').addEventListener('click', ()=>{
+  const dueDate = document.getElementById('dueDateInput').value;
+  const range = document.getElementById('rangeInput').value.trim();
+  const note = document.getElementById('noteInput').value.trim();
+  if(!selectedSubject || !selectedCategory || !dueDate) return;
+
+  if(editingId){
+    const a = state.assignments.find(x=>x.id===editingId);
+    a.subject = selectedSubject;
+    a.category = selectedCategory;
+    a.dueDate = dueDate;
+    a.range = range;
+    a.note = note;
+  }else{
+    state.assignments.push({
+      id: uid(),
+      subject: selectedSubject,
+      category: selectedCategory,
+      dueDate: dueDate,
+      range: range,
+      note: note,
+      done: false
+    });
+  }
+  saveState();
+  closeSheet();
+  render();
+});
+
+document.getElementById('deleteBtn').addEventListener('click', ()=>{
+  if(!editingId) return;
+  state.assignments = state.assignments.filter(x=>x.id!==editingId);
+  saveState();
+  closeSheet();
+  render();
+});
+
+document.getElementById('tabAll').addEventListener('click', ()=>{
+  view = 'all';
+  document.getElementById('tabAll').classList.add('active');
+  document.getElementById('tabDone').classList.remove('active');
+  render();
+});
+document.getElementById('tabDone').addEventListener('click', ()=>{
+  view = 'done';
+  document.getElementById('tabDone').classList.add('active');
+  document.getElementById('tabAll').classList.remove('active');
+  render();
+});
+
+loadState();
+
+if('serviceWorker' in navigator){
+  window.addEventListener('load', ()=>{
+    navigator.serviceWorker.register('service-worker.js').catch(e=>console.log('sw register failed', e));
+  });
+}
+</script>
+</body>
+</html>
