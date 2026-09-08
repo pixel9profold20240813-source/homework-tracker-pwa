@@ -411,11 +411,12 @@ function uid(){
   return Date.now().toString(36)+Math.random().toString(36).slice(2,7);
 }
 
-async function loadState(){
+const STORAGE_KEY = 'homework-data';
+function loadState(){
   try{
-    const res = await window.storage.get('homework-data', false);
-    if(res && res.value){
-      const parsed = JSON.parse(res.value);
+    const raw = localStorage.getItem(STORAGE_KEY);
+    if(raw){
+      const parsed = JSON.parse(raw);
       state.assignments = parsed.assignments || [];
       state.customSubjects = parsed.customSubjects || [];
       state.customCategories = parsed.customCategories || [];
@@ -425,9 +426,9 @@ async function loadState(){
   }
   render();
 }
-async function saveState(){
+function saveState(){
   try{
-    await window.storage.set('homework-data', JSON.stringify(state), false);
+    localStorage.setItem(STORAGE_KEY, JSON.stringify(state));
   }catch(e){
     console.error('storage save failed', e);
   }

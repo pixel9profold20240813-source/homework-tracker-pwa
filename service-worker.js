@@ -1,4 +1,4 @@
-const CACHE_NAME = 'homework-tracker-v1';
+const CACHE_NAME = 'homework-tracker-v2';
 const ASSETS = [
   './',
   './index.html',
